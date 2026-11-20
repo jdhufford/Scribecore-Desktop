@@ -12,6 +12,31 @@ export interface AppInfo {
   /** Name of the sync service the data folder is inside (OneDrive, Dropbox...), if any. */
   syncFolder: string | null
   schemaVersion: number
+  /** Windows regional-format locale (e.g. en-US, en-GB), used to display dates. */
+  locale: string
+}
+
+export type Theme = 'system' | 'light' | 'dark'
+export type ViewMode = 'normal' | 'compact'
+
+/** User preferences stored in the database `settings` table. */
+export interface Settings {
+  theme: Theme
+  viewMode: ViewMode
+  tagMode: TagMode
+}
+
+export const DEFAULT_SETTINGS: Settings = { theme: 'system', viewMode: 'normal', tagMode: 'and' }
+
+/** Commands sent from the menu bar (and other main-process sources) to the renderer. */
+export type MenuCommand = 'new-entry' | 'find' | 'toggle-compact' | 'settings' | 'undo'
+
+export interface ConfirmOptions {
+  message: string
+  detail?: string
+  confirmLabel: string
+  cancelLabel?: string
+  danger?: boolean
 }
 
 export interface Activity {
@@ -82,6 +107,18 @@ export interface ScribeCoreApi {
     list(): Promise<Result<TagCount[]>>
     suggest(task: string, notes: string): Promise<Result<string[]>>
   }
+  settings: {
+    get(): Promise<Settings>
+    set<K extends keyof Settings>(key: K, value: Settings[K]): Promise<Result<Settings>>
+  }
+  ui: {
+    /** Native confirmation dialog; resolves true if the user confirmed. */
+    confirm(options: ConfirmOptions): Promise<boolean>
+    /** Tell the main process whether there are unsaved form changes (checked on window close). */
+    setDirty(dirty: boolean): void
+    /** Subscribe to menu commands. Returns an unsubscribe function. */
+    onMenuCommand(callback: (command: MenuCommand) => void): () => void
+  }
 }
 
 /** IPC channel names, kept in one place so main and preload cannot drift apart. */
@@ -98,4 +135,9 @@ export const IPC = {
   activitiesEmptyTrash: 'activities:empty-trash',
   tagsList: 'tags:list',
   tagsSuggest: 'tags:suggest',
+  settingsGet: 'settings:get',
+  settingsSet: 'settings:set',
+  uiConfirm: 'ui:confirm',
+  uiSetDirty: 'ui:set-dirty',
+  menuCommand: 'menu:command',
 } as const

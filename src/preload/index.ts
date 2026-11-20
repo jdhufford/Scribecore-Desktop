@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC, type ScribeCoreApi } from '../shared/types'
+import { IPC, type MenuCommand, type ScribeCoreApi } from '../shared/types'
 
 // The renderer runs sandboxed with no Node access. This bridge is the only way
 // it can reach the main process, and it exposes named functions, never
@@ -20,6 +20,19 @@ const api: ScribeCoreApi = {
   tags: {
     list: () => ipcRenderer.invoke(IPC.tagsList),
     suggest: (task, notes) => ipcRenderer.invoke(IPC.tagsSuggest, task, notes),
+  },
+  settings: {
+    get: () => ipcRenderer.invoke(IPC.settingsGet),
+    set: (key, value) => ipcRenderer.invoke(IPC.settingsSet, key, value),
+  },
+  ui: {
+    confirm: (options) => ipcRenderer.invoke(IPC.uiConfirm, options),
+    setDirty: (dirty) => ipcRenderer.send(IPC.uiSetDirty, dirty),
+    onMenuCommand: (callback) => {
+      const listener = (_event: Electron.IpcRendererEvent, command: MenuCommand) => callback(command)
+      ipcRenderer.on(IPC.menuCommand, listener)
+      return () => ipcRenderer.removeListener(IPC.menuCommand, listener)
+    },
   },
 }
 
