@@ -22,6 +22,8 @@ win:
       arch: [x64]
   # The zip is the portable build; nsis and msi set their own names below.
   artifactName: ScribeCore-${version}-portable.${ext}
+  # Placeholder icon (build/icon-placeholder.svg). Replace build/icon.ico with the real logo.
+  icon: build/icon.ico
   # Code signing is added at milestone 7. Without a certificate, builds are unsigned.
 
 nsis:
