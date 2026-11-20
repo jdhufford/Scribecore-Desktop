@@ -281,6 +281,17 @@ As built (milestone 2, 2026-11-20):
 - Disk full or the database locked by antivirus: show an error and never lose the form contents.
 - Language: English only in 1.0, but put UI strings in one file so translation is possible later.
 
+As built (milestone 3, 2026-11-20):
+- Layout: sidebar (New Entry, search, tag list with counts, All/Any match toggle when two or
+  more tags are selected, Clear) and the entry list; the add/edit form opens above the list.
+- Keyboard: Ctrl+N, Ctrl+F, Ctrl+S, Esc, Ctrl+, (Settings), Ctrl+Shift+C (compact view),
+  arrow keys to select an entry, Enter to edit, Delete to move to Trash, Ctrl+Z outside a text
+  field restores the last entry moved to Trash (inside a field it is normal text undo).
+- Theme: "Match Windows" follows the system; Light/Dark are applied explicitly. The main process
+  sets `nativeTheme.themeSource` so menus and dialogs match.
+- Help > "Check for Newer Versions" only opens the GitHub releases page in the browser.
+- Window size, position and maximized state are saved in the `settings` table.
+
 ## 11. Testing
 
 - Unit tests for the database layer, migrations, import parsing (fixtures: BOM, cp1252, UTF-16,

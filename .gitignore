@@ -6,3 +6,5 @@ release/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+test-results/
+playwright-report/
