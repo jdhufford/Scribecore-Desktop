@@ -99,11 +99,13 @@ export async function migrate(db: DB, options: OpenOptions): Promise<number | nu
 
 /** Open (creating if needed) and migrate a ScribeCore database. */
 export async function openDatabase(file: string, options: OpenOptions): Promise<OpenResult> {
-  let db: DB
+  let db: DB | undefined
   try {
     db = new Database(file)
     applyPragmas(db)
   } catch (err) {
+    // Always release the handle: on Windows an open handle locks the file.
+    if (db?.open) db.close()
     if (err instanceof Error && /not a database|file is encrypted/i.test(err.message)) {
       throw new NotScribeCoreDatabaseError('This file is not a ScribeCore data file, or it is damaged.')
     }

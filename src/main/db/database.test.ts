@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3-multiple-ciphers'
-import { writeFileSync } from 'node:fs'
+import { renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -60,6 +60,9 @@ describe('openDatabase', () => {
     const file = join(tempDir(), 'notes.db')
     writeFileSync(file, 'this is just a text file, not SQLite '.repeat(200))
     await expect(openDatabase(file, { appVersion: '1.0.0' })).rejects.toBeInstanceOf(NotScribeCoreDatabaseError)
+    // The handle must be released, or Windows keeps the file locked.
+    renameSync(file, `${file}.moved`)
+    unlinkSync(`${file}.moved`)
   })
 })
 

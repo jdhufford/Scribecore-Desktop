@@ -25,5 +25,6 @@ afterEach(() => {
   for (const db of dbs.splice(0)) {
     if (db.open) db.close()
   }
-  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+  // Retries cover Windows releasing file handles a moment after close().
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
 })
