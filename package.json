@@ -20,13 +20,16 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && svelte-check --tsconfig ./tsconfig.web.json --fail-on-warnings",
-    "test": "vitest run",
+    "test": "node scripts/run-tests.mjs run",
     "dist": "npm run build && electron-builder --win --x64",
-    "dist:dir": "npm run build && electron-builder --win --x64 --dir"
+    "dist:dir": "npm run build && electron-builder --win --x64 --dir",
+    "test:watch": "node scripts/run-tests.mjs",
+    "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "@types/node": "22.20.5",
+    "7zip-bin": "5.2.0",
     "electron": "45.4.1",
     "electron-builder": "26.18.0",
     "electron-vite": "6.0.0",
@@ -35,5 +38,8 @@
     "typescript": "5.9.3",
     "vite": "8.3.8",
     "vitest": "5.1.1"
+  },
+  "dependencies": {
+    "better-sqlite3-multiple-ciphers": "13.0.3"
   }
 }

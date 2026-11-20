@@ -140,6 +140,11 @@ Removed from the web version and not planned:
   the current database as a backup.
 - Restore checks that the file opens, has the right schema version, and asks for the password
   if it is encrypted.
+- As built: daily files are `scribecore-YYYY-MM-DD.db` (local date). Safety copies made before
+  a schema upgrade or a restore are `scribecore-YYYY-MM-DD-<reason>.db`; the newest 5 are kept.
+  Backups are written to a temp file, switched to a single-file journal mode (no `-wal`/`-shm`
+  side files, readable from read-only media), then renamed into place.
+- Milestone 6 must re-verify that a backup of an encrypted database is itself encrypted.
 
 ## 6. Architecture
 
@@ -194,6 +199,20 @@ Changes from the web schema:
 - Migrations are numbered scripts run at startup inside a transaction, with an automatic backup
   first. A database from a newer app version is refused with a clear message rather than opened.
 
+As built (milestone 2, 2026-11-20):
+- The schema version is `PRAGMA user_version`. `meta` holds `created_with` and
+  `last_opened_with` (app versions).
+- Pragmas: WAL journal, `synchronous = FULL` (an entry the user saw as saved survives a power
+  cut), foreign keys on, 5-second busy timeout.
+- An empty file with other programs' tables, or a non-SQLite file, is refused rather than
+  modified.
+- Limits: task up to 500 characters; tags have inner whitespace collapsed (`"project   alpha"`
+  becomes `"project alpha"`).
+- Search uses `LIKE` with `%` and `_` escaped, so they match literally.
+- Tags used only by entries in Trash are kept, so restoring an entry restores its tags.
+- Library: `better-sqlite3-multiple-ciphers` (pinned 13.0.3). Tests run inside Electron's Node
+  runtime so they exercise the same native binary the app ships.
+
 ## 8. Storage locations
 
 | Build | Data directory |
@@ -202,6 +221,11 @@ Changes from the web schema:
 | Portable zip | `<exe folder>\data\`. Detected by a `portable.flag` file next to the exe |
 
 - Settings > Data shows the path, with an "Open folder" button.
+- Chromium's own files (cache, local storage) go in `<data dir>\chromium\`, so a portable copy
+  writes nothing to the user profile.
+- Development runs (`npm run dev`) use `%APPDATA%\ScribeCore-dev\`, never real data.
+- The portable zip gets `portable.flag` from an electron-builder hook
+  (`scripts/add-portable-flag.cjs`); the installers never contain it.
 - Placing the live database in a sync folder (OneDrive, Dropbox) is not supported. If the data
   directory is detected inside one, show a warning. Backups there are fine.
 - Portable build on a read-only location: show a clear error at startup and offer to switch to
