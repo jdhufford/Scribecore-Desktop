@@ -1,0 +1,39 @@
+{
+  "name": "scribecore-desktop",
+  "productName": "ScribeCore",
+  "version": "0.1.0",
+  "description": "A local, private work-activity log for Windows",
+  "license": "GPL-3.0-or-later",
+  "author": "jdhufford",
+  "homepage": "https://github.com/jdhufford/Scribecore-Desktop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jdhufford/Scribecore-Desktop.git"
+  },
+  "private": true,
+  "main": "out/main/index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.node.json && svelte-check --tsconfig ./tsconfig.web.json --fail-on-warnings",
+    "test": "vitest run",
+    "dist": "npm run build && electron-builder --win --x64",
+    "dist:dir": "npm run build && electron-builder --win --x64 --dir"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@types/node": "22.20.5",
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "svelte": "5.59.0",
+    "svelte-check": "4.7.8",
+    "typescript": "5.9.3",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  }
+}

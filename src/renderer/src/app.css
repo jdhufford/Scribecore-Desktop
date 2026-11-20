@@ -1,0 +1,81 @@
+/* Theme tokens. Colors follow the ScribeCore web app (indigo/violet accent).
+   The default theme follows Windows (prefers-color-scheme); data-theme on <html>
+   lets the user force light or dark from Settings later. */
+:root {
+  color-scheme: light dark;
+  --accent: #667eea;
+  --accent-strong: #5a67d8;
+  --accent-alt: #764ba2;
+  --text: #2d3748;
+  --text-secondary: #4a5568;
+  --bg: #f7fafc;
+  --bg-card: #ffffff;
+  --border: #e2e8f0;
+  --error: #c53030;
+  --focus: #5a67d8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --accent: #8b9cf4;
+    --accent-strong: #a3b0f7;
+    --text: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --bg: #1a202c;
+    --bg-card: #2d3748;
+    --border: #4a5568;
+    --error: #fc8181;
+    --focus: #a3b0f7;
+  }
+}
+
+:root[data-theme='dark'] {
+  --accent: #8b9cf4;
+  --accent-strong: #a3b0f7;
+  --text: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --bg: #1a202c;
+  --bg-card: #2d3748;
+  --border: #4a5568;
+  --error: #fc8181;
+  --focus: #a3b0f7;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+button {
+  font: inherit;
+  background: var(--accent-strong);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+code {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 0.9em;
+}

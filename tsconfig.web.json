@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "emitDeclarationOnly": true,
+    "outDir": "node_modules/.tmp/tsc-web",
+    "tsBuildInfoFile": "node_modules/.tmp/tsc-web/tsconfig.tsbuildinfo"
+  },
+  "include": ["src/renderer/src/**/*.ts", "src/renderer/src/**/*.svelte", "src/shared/**/*.ts"]
+}
