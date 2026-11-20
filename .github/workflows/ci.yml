@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  # Every branch, so work in progress is built on Windows before a pull request exists.
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 

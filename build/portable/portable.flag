@@ -1,0 +1,2 @@
+This file makes ScribeCore keep its data in the "data" folder next to ScribeCore.exe.
+Delete it to store data in %APPDATA%\ScribeCore instead.

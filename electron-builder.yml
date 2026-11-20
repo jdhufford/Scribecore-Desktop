@@ -11,6 +11,7 @@ files:
   - '!**/*.map'
 asar: true
 publish: null # manual downloads only, no auto-update feed
+artifactBuildCompleted: scripts/add-portable-flag.cjs
 
 win:
   target:
