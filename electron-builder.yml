@@ -1,0 +1,42 @@
+# Packaging for ScribeCore Desktop (SPEC section 9). Windows x64 only.
+appId: io.github.jdhufford.scribecore
+productName: ScribeCore
+copyright: Copyright © 2026 ScribeCore contributors
+directories:
+  output: release/${version}
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+asar: true
+publish: null # manual downloads only, no auto-update feed
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: msi
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  # The zip is the portable build; nsis and msi set their own names below.
+  artifactName: ScribeCore-${version}-portable.${ext}
+  # Code signing is added at milestone 7. Without a certificate, builds are unsigned.
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  shortcutName: ScribeCore
+  artifactName: ScribeCore-Setup-${version}.${ext}
+
+msi:
+  perMachine: true
+  oneClick: true
+  shortcutName: ScribeCore
+  # Never change this GUID: Windows uses it to recognise newer MSIs as upgrades.
+  upgradeCode: E47D458C-D971-4C9C-841B-5972C08675EB
+  artifactName: ScribeCore-${version}.${ext}
