@@ -1,7 +1,7 @@
-import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
+import { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, screen, session, shell } from 'electron'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { IPC, type AppInfo } from '../shared/types'
+import { IPC, type AppInfo, type ConfirmOptions } from '../shared/types'
 import { runDailyBackup, safetyBackup } from './db/backup'
 import {
   NotScribeCoreDatabaseError,
@@ -13,6 +13,7 @@ import {
 import { Repository } from './db/repository'
 import { registerDataIpc } from './ipc'
 import { log, initLog } from './log'
+import { buildMenu } from './menu'
 import {
   detectSyncFolder,
   isWritableDir,
@@ -21,17 +22,23 @@ import {
   type DataLocation,
 } from './paths'
 import { RELEASES_URL, isAllowedExternalUrl, isAllowedRequest } from './security'
+import { readSettings, writeSetting } from './settings'
+import { DEFAULT_SIZE, MIN_HEIGHT, MIN_WIDTH, parseWindowState, restoreBounds } from './window-state'
 
 const APP_ID = 'io.github.jdhufford.scribecore'
 const devServerUrl = !app.isPackaged ? process.env['ELECTRON_RENDERER_URL'] : undefined
 
 // ---- Data location: decided before 'ready', because Chromium's own files go there too.
-let location: DataLocation = resolveDataLocation({
-  exeDir: dirname(app.getPath('exe')),
-  appDataDir: app.getPath('appData'),
-  isPackaged: app.isPackaged,
-  fileExists: existsSync,
-})
+// SCRIBECORE_DATA_DIR (development and automated tests only) points a run at a throwaway folder.
+const devDataDir = !app.isPackaged ? process.env['SCRIBECORE_DATA_DIR'] : undefined
+let location: DataLocation = devDataDir
+  ? locationFor(devDataDir, false)
+  : resolveDataLocation({
+      exeDir: dirname(app.getPath('exe')),
+      appDataDir: app.getPath('appData'),
+      isPackaged: app.isPackaged,
+      fileExists: existsSync,
+    })
 const portableUnwritable = location.portable && !isWritableDir(location.dataDir)
 const appDataLocation = locationFor(join(app.getPath('appData'), 'ScribeCore'), false)
 // A read-only portable folder (e.g. a locked USB stick) cannot hold Chromium's files either.
@@ -40,6 +47,8 @@ app.setPath('userData', (portableUnwritable ? appDataLocation : location).chromi
 let mainWindow: BrowserWindow | null = null
 let db: DB | null = null
 let repository: Repository | null = null
+/** True while the renderer has unsaved form changes. */
+let rendererDirty = false
 
 function repo(): Repository {
   if (!repository) throw new Error('Database is not open')
@@ -50,12 +59,27 @@ function openExternal(url: string): void {
   if (isAllowedExternalUrl(url)) void shell.openExternal(url)
 }
 
+const WINDOW_STATE_KEY = 'window'
+
+function saveWindowState(win: BrowserWindow): void {
+  try {
+    const state = { bounds: win.getNormalBounds(), maximized: win.isMaximized() }
+    repository?.setSetting(WINDOW_STATE_KEY, JSON.stringify(state))
+  } catch (err) {
+    log.warn('Could not save window position', err)
+  }
+}
+
 function createWindow(): void {
+  const saved = parseWindowState(repository?.getSetting(WINDOW_STATE_KEY) ?? null)
+  const bounds = restoreBounds(
+    saved,
+    screen.getAllDisplays().map((d) => d.workArea),
+  )
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    ...(bounds ?? DEFAULT_SIZE),
+    minWidth: MIN_WIDTH,
+    minHeight: MIN_HEIGHT,
     show: false,
     title: 'ScribeCore',
     autoHideMenuBar: false,
@@ -69,7 +93,32 @@ function createWindow(): void {
     },
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.once('ready-to-show', () => {
+    if (bounds && saved?.maximized) mainWindow?.maximize()
+    mainWindow?.show()
+  })
+  // Unsaved form changes: ask before closing (SPEC 10).
+  mainWindow.on('close', (event) => {
+    const win = mainWindow
+    if (!win) return
+    if (rendererDirty) {
+      const choice = dialog.showMessageBoxSync(win, {
+        type: 'warning',
+        title: 'ScribeCore',
+        message: 'You have an entry with unsaved changes.',
+        detail: 'Close ScribeCore and discard them?',
+        buttons: ['Keep editing', 'Discard and close'],
+        defaultId: 0,
+        cancelId: 0,
+      })
+      if (choice === 0) {
+        event.preventDefault()
+        return
+      }
+      rendererDirty = false
+    }
+    saveWindowState(win)
+  })
   mainWindow.on('closed', () => {
     mainWindow = null
   })
@@ -120,9 +169,52 @@ function registerAppIpc(): void {
       portable: location.portable,
       syncFolder: detectSyncFolder(location.dataDir, process.env),
       schemaVersion: db ? schemaVersion(db) : 0,
+      locale: app.getSystemLocale() || app.getLocale(),
     }),
   )
   ipcMain.handle(IPC.openReleases, () => shell.openExternal(RELEASES_URL))
+
+  ipcMain.handle(IPC.settingsGet, () => readSettings(repo()))
+  ipcMain.handle(IPC.settingsSet, (_e, key: unknown, value: unknown) => {
+    try {
+      const settings = writeSetting(repo(), key, value)
+      nativeTheme.themeSource = settings.theme
+      return { ok: true, value: settings }
+    } catch (err) {
+      return { ok: false, error: { code: 'validation', message: (err as Error).message } }
+    }
+  })
+
+  ipcMain.handle(IPC.uiConfirm, async (event, raw: unknown) => {
+    const o = (raw && typeof raw === 'object' ? raw : {}) as Partial<ConfirmOptions>
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const options = {
+      type: (o.danger ? 'warning' : 'question') as 'warning' | 'question',
+      title: 'ScribeCore',
+      message: String(o.message ?? ''),
+      detail: o.detail ? String(o.detail) : undefined,
+      buttons: [String(o.cancelLabel ?? 'Cancel'), String(o.confirmLabel ?? 'OK')],
+      defaultId: o.danger ? 0 : 1,
+      cancelId: 0,
+      noLink: true,
+    }
+    const { response } = win ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options)
+    return response === 1
+  })
+  ipcMain.on(IPC.uiSetDirty, (_e, dirty: unknown) => {
+    rendererDirty = dirty === true
+  })
+}
+
+function aboutText(): string {
+  return [
+    'A private, local work-activity log.',
+    '',
+    `Data folder: ${location.dataDir}${location.portable ? ' (portable)' : ''}`,
+    `Electron ${process.versions.electron}, Chromium ${process.versions.chrome}`,
+    '',
+    'Free software under the GNU General Public License v3.0 or later.',
+  ].join('\n')
 }
 
 function fatal(title: string, message: string): false {
@@ -237,8 +329,10 @@ if (!app.requestSingleInstanceLock()) {
       app.exit(1)
       return
     }
+    nativeTheme.themeSource = readSettings(repo()).theme
     registerAppIpc()
     registerDataIpc(repo)
+    Menu.setApplicationMenu(buildMenu(() => mainWindow, aboutText))
     createWindow()
   })
 
